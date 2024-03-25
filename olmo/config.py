@@ -540,10 +540,15 @@ class PaddingDirection(StrEnum):
     left = "left"
 
 
+class Datasets:
+    mix_rate: float
+    path: str
+
+
 @dataclass
 class DataConfig(BaseConfig):
     paths: Optional[List[str]] = None
-    datasets: Optional[Dict[str, Dict[str, object]]] = None
+    datasets: Optional[Dict[str, Datasets]] = None
     label_mask_paths: Optional[List[str]] = None
     pad_direction: PaddingDirection = PaddingDirection.right
     generate_attention_mask: bool = False
