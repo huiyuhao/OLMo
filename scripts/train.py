@@ -66,7 +66,8 @@ def main(cfg: TrainConfig) -> None:
         )
         cfg.optimizer.decay_norm_and_bias = not cfg.optimizer.no_decay_norm_and_bias
         cfg.optimizer.decay_embeddings = not cfg.optimizer.no_decay_norm_and_bias
-        cfg.optimizer.no_decay_norm_and_bias = None  # So nobody uses this by accident.
+        # So nobody uses this by accident.
+        cfg.optimizer.no_decay_norm_and_bias = None
 
     # Display and save configuration.
     if get_global_rank() == 0:
@@ -77,7 +78,8 @@ def main(cfg: TrainConfig) -> None:
             # Save config.
             save_path = Path(cfg.save_folder) / "config.yaml"
             if save_path.is_file() and not cfg.save_overwrite:
-                raise OLMoConfigurationError(f"{save_path} already exists, use --save_overwrite to overwrite")
+                raise OLMoConfigurationError(
+                    f"{save_path} already exists, use --save_overwrite to overwrite")
             else:
                 log.info(f"Saving config to {save_path}")
                 save_path.parent.mkdir(exist_ok=True, parents=True)
@@ -93,10 +95,10 @@ def main(cfg: TrainConfig) -> None:
         wandb.init(
             dir=wandb_dir,
             project=cfg.wandb.project,
-            entity=cfg.wandb.entity,
-            group=cfg.wandb.group,
-            name=cfg.wandb.name,
-            tags=cfg.wandb.tags,
+            # entity=cfg.wandb.entity,
+            # group=cfg.wandb.group,
+            # name=cfg.wandb.name,
+            # tags=cfg.wandb.tags,
             config=cfg.asdict(exclude=["wandb"]),
         )
 
@@ -116,8 +118,10 @@ def main(cfg: TrainConfig) -> None:
     log.info("Building model...")
     olmo_model = OLMo(cfg.model)
     log.info(f"Total number of parameters: {olmo_model.num_params():,d}")
-    log.info(f"Number of non-embedding parameters: {olmo_model.num_params(include_embedding=False):,d}")
-    log.info(f"Peak GPU Memory (MB) before FSDP: {int(peak_gpu_memory() or 0)}")
+    log.info(
+        f"Number of non-embedding parameters: {olmo_model.num_params(include_embedding=False):,d}")
+    log.info(
+        f"Peak GPU Memory (MB) before FSDP: {int(peak_gpu_memory() or 0)}")
 
     olmo_model.set_activation_checkpointing(cfg.activation_checkpointing)
 
@@ -138,7 +142,8 @@ def main(cfg: TrainConfig) -> None:
         sharding_strategy=cfg.fsdp.sharding_strategy,
         mixed_precision=cfg.fsdp_precision,
         auto_wrap_policy=wrap_policy,
-        use_orig_params=cfg.fsdp.use_orig_params,  # needed for compile and some of our optimizer/parameter metrics
+        # needed for compile and some of our optimizer/parameter metrics
+        use_orig_params=cfg.fsdp.use_orig_params,
         limit_all_gathers=True,
         device_id=get_local_rank(),
         param_init_fn=param_init_fn,
@@ -158,9 +163,11 @@ def main(cfg: TrainConfig) -> None:
     # Data indices file.
     indices_file: Optional[TextIO] = None
     if cfg.save_data_indices:
-        indices_file_path = Path(cfg.save_folder) / f"data-indices/rank{get_global_rank()}.tsv.gz"
+        indices_file_path = Path(cfg.save_folder) / \
+            f"data-indices/rank{get_global_rank()}.tsv.gz"
         if indices_file_path.exists() and not cfg.save_overwrite:
-            raise OLMoConfigurationError(f"{indices_file_path} already exists, use --save_overwrite to overwrite")
+            raise OLMoConfigurationError(
+                f"{indices_file_path} already exists, use --save_overwrite to overwrite")
         indices_file_path.parent.mkdir(exist_ok=True, parents=True)
         indices_file = gzip.open(indices_file_path, "wt")
 
@@ -184,7 +191,8 @@ def main(cfg: TrainConfig) -> None:
 
             # We save a checkpoint up-front to make sure this won't fail (due to disk space or whatever).
             log.info("Saving pre-train checkpoint...")
-            checkpoint_path, local_checkpoint_cache = trainer.save_checkpoint(checkpoint_type=checkpoint_type)
+            checkpoint_path, local_checkpoint_cache = trainer.save_checkpoint(
+                checkpoint_type=checkpoint_type)
             log.info(f"Checkpoint saved to {checkpoint_path}")
 
             # And they we verify that we can load it.
@@ -219,14 +227,16 @@ def main(cfg: TrainConfig) -> None:
 
         if cfg.force_save_unsharded:
             log.info("Saving unsharded checkpoint...")
-            checkpoint_path, _ = trainer.save_checkpoint(checkpoint_type=CheckpointType.unsharded)
+            checkpoint_path, _ = trainer.save_checkpoint(
+                checkpoint_type=CheckpointType.unsharded)
             log.info(f"Unsharded checkpoint saved to {checkpoint_path}")
 
         if cfg.compile is not None:
             # TODO (epwalsh): trying to compile the whole train step results in a compile-time error from within
             # the optimizer. We should investigate this further at some point.
             #  trainer.train_step = torch.compile(trainer.train_step, **cfg.compile.asdict())
-            trainer.train_batch = torch.compile(trainer.train_batch, **cfg.compile.asdict())  # type: ignore
+            trainer.train_batch = torch.compile(
+                trainer.train_batch, **cfg.compile.asdict())  # type: ignore
             # TODO (epwalsh): compiling the `eval_batch()` method is a little sketchy since the inputs will look
             # different for different eval tasks. That might be okay, but it might not be.
             #  trainer.eval_batch = torch.compile(trainer.eval_batch, **cfg.compile.asdict())  # type: ignore
