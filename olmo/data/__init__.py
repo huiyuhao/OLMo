@@ -1,5 +1,9 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional, cast
+import random
+from smashed.utils.io_utils import (
+    recursively_list_files,
+)
 
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -11,7 +15,8 @@ from .collator import DataCollator
 from .iterable_dataset import IterableDataset
 from .memmap_dataset import MemMapDataset
 
-__all__ = ["MemMapDataset", "DataCollator", "IterableDataset", "build_eval_dataloader", "build_train_dataloader"]
+__all__ = ["MemMapDataset", "DataCollator", "IterableDataset",
+           "build_eval_dataloader", "build_train_dataloader"]
 
 
 def build_memmap_dataset(
@@ -20,19 +25,28 @@ def build_memmap_dataset(
     paths: List[str]
     metadata: List[Dict[str, Any]] = []
     if data_config.paths:
-        if data_config.datasets:
-            raise OLMoConfigurationError("DataConfig.paths is mutually exclusive with DataConfig.datasets")
+        # if data_config.datasets:
+        #     raise OLMoConfigurationError(
+        #         "DataConfig.paths is mutually exclusive with DataConfig.datasets")
         paths = data_config.paths
         for path in paths:
             metadata.append({"path": str(path)})
     elif data_config.datasets:
+        random.seed(3920)
         paths = []
         for label in sorted(data_config.datasets.keys()):
             label_paths = data_config.datasets[label]
-            paths.extend(label_paths)
-            metadata.extend([{"label": label}] * len(label_paths))
+            mix_rate = label_paths['mix_rate']
+            src_path = label_paths['path']
+            file_paths = list(recursively_list_files(src_path))
+            for path in file_paths:
+                rand_num = random.random()
+                print(f'{rand_num}/{mix_rate}')
+                if rand_num < mix_rate:
+                    metadata.append({"path": str(path)})
     else:
-        raise OLMoConfigurationError("One of DataConfig.paths or DataConfig.datasets is required")
+        raise OLMoConfigurationError(
+            "One of DataConfig.paths or DataConfig.datasets is required")
     return MemMapDataset(
         *paths,
         chunk_size=train_config.model.max_sequence_length,
@@ -40,7 +54,8 @@ def build_memmap_dataset(
         include_instance_metadata=include_instance_metadata,
         pad_token_id=train_config.model.pad_token_id,
         generate_attention_mask=data_config.generate_attention_mask,
-        label_mask_paths=cast(Optional[List[PathOrStr]], data_config.label_mask_paths),
+        label_mask_paths=cast(
+            Optional[List[PathOrStr]], data_config.label_mask_paths),
     )
 
 
@@ -50,8 +65,10 @@ def build_eval_dataloader(
     batch_size: int,
     shuffle: bool = True,
 ) -> DataLoader:
-    dataset = build_memmap_dataset(train_config, data_config, include_instance_metadata=True)
-    collator = DataCollator(pad_direction=data_config.pad_direction, pad_token_id=train_config.model.pad_token_id)
+    dataset = build_memmap_dataset(
+        train_config, data_config, include_instance_metadata=True)
+    collator = DataCollator(pad_direction=data_config.pad_direction,
+                            pad_token_id=train_config.model.pad_token_id)
     if data_config.drop_last:
         # Make sure batch size is small enough.
         samples_per_device = len(dataset) // get_world_size()
@@ -84,7 +101,8 @@ def build_train_dataloader(train_config: TrainConfig) -> DataLoader:
     collator = DataCollator(
         pad_direction=train_config.data.pad_direction, pad_token_id=train_config.model.pad_token_id
     )
-    dataset = build_memmap_dataset(train_config, train_config.data, include_instance_metadata=False)
+    dataset = build_memmap_dataset(
+        train_config, train_config.data, include_instance_metadata=False)
     work_dir = Path(train_config.save_folder) / "train_data"
     if get_global_rank() == 0:
         if work_dir.is_dir() and not train_config.save_overwrite:
