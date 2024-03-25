@@ -543,7 +543,7 @@ class PaddingDirection(StrEnum):
 @dataclass
 class DataConfig(BaseConfig):
     paths: Optional[List[str]] = None
-    datasets: Optional[Dict[str, Dict[float, str]]] = None
+    datasets: Optional[Dict[str, Dict[str, object]]] = None
     label_mask_paths: Optional[List[str]] = None
     pad_direction: PaddingDirection = PaddingDirection.right
     generate_attention_mask: bool = False
