@@ -66,7 +66,8 @@ class BaseConfig:
             for path in paths:
                 matches = sorted(glob(path))
                 if not matches and validate_paths:
-                    raise FileNotFoundError(f"{path} does not match any files or dirs")
+                    raise FileNotFoundError(
+                        f"{path} does not match any files or dirs")
                 out.extend(matches)
             return out
 
@@ -89,7 +90,8 @@ class BaseConfig:
             latest_checkpoint = find_latest_checkpoint(path)
             if latest_checkpoint is None:
                 if validate_paths:
-                    raise FileNotFoundError(f"Could not find a latest checkpoint at {path}")
+                    raise FileNotFoundError(
+                        f"Could not find a latest checkpoint at {path}")
                 else:
                     return ""
             else:
@@ -97,7 +99,8 @@ class BaseConfig:
 
         om.register_new_resolver("path.glob", path_glob, replace=True)
         om.register_new_resolver("path.choose", path_choose, replace=True)
-        om.register_new_resolver("path.last_checkpoint", path_last_checkpoint, replace=True)
+        om.register_new_resolver(
+            "path.last_checkpoint", path_last_checkpoint, replace=True)
 
     @classmethod
     def update_legacy_settings(cls, config: D) -> D:
@@ -540,7 +543,7 @@ class PaddingDirection(StrEnum):
 @dataclass
 class DataConfig(BaseConfig):
     paths: Optional[List[str]] = None
-    datasets: Optional[Dict[str, List[str]]] = None
+    datasets: Optional[Dict[str, Dict[str, str]]] = None
     label_mask_paths: Optional[List[str]] = None
     pad_direction: PaddingDirection = PaddingDirection.right
     generate_attention_mask: bool = False
@@ -977,7 +980,8 @@ class TrainConfig(BaseConfig):
     Weights & Biases configuration.
     """
 
-    speed_monitor: SpeedMonitorConfig = field(default_factory=SpeedMonitorConfig)
+    speed_monitor: SpeedMonitorConfig = field(
+        default_factory=SpeedMonitorConfig)
     """
     Speed monitor configuration.
     """
@@ -1095,6 +1099,7 @@ class TrainConfig(BaseConfig):
                     new_config.activation_checkpointing = ActivationCheckpointingStrategy.whole_layer
 
             if hasattr(new_config, "optimizer"):
-                new_config.optimizer = OptimizerConfig.update_legacy_settings(new_config.optimizer)
+                new_config.optimizer = OptimizerConfig.update_legacy_settings(
+                    new_config.optimizer)
 
         return new_config
