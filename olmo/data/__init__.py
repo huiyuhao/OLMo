@@ -42,8 +42,9 @@ def build_memmap_dataset(
             for path in file_paths:
                 rand_num = random.random()
                 print(f'{rand_num}/{mix_rate}')
-                if rand_num < mix_rate:
+                if rand_num < float(mix_rate):
                     metadata.append({"path": str(path)})
+            print(f'metadata:{metadata}')
     else:
         raise OLMoConfigurationError(
             "One of DataConfig.paths or DataConfig.datasets is required")

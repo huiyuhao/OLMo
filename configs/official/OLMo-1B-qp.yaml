@@ -97,11 +97,11 @@ data:
   timeout: 0
   datasets:
     starcode:
-      mix_rate: 0.5
+      mix_rate: '1.0'
       path: /root/olmo_datasets_tool/olmo_npy/starcode
     Wikipedia:
-      mix_rate: 0.5
+      mix_rate: '1.0'
       path: /root/olmo_datasets_tool/olmo_npy/Wikipedia
     ArXiv:
-      mix_rate: 0.5
+      mix_rate: '1.0'
       path: /root/olmo_datasets_tool/olmo_npy/ArXiv
